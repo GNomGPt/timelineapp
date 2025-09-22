@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Текущая задача</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="timer-screen">
+  <div class="timer-layout">
+    <h1>Контроль задач</h1>
+    <div class="cards">
+      <div class="timer-card">
+        <h2>Текущая</h2>
+        <p id="current-task">Нет задачи</p>
+      </div>
+      <div class="timer-card">
+        <h2>Следующая</h2>
+        <p id="next-task">Нет задачи</p>
+      </div>
+    </div>
+
+    <div class="progress-circle">
+      <svg viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,0.2)"></circle>
+        <circle id="progress-ring" cx="60" cy="60" r="52" stroke="#ff9800" stroke-dasharray="326.72" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="time-label" id="timer-label">00:00</div>
+    </div>
+
+    <div class="timer-actions">
+      <button class="start" id="start-timer">Старт</button>
+      <button class="pause" id="pause-timer">Пауза</button>
+      <button class="stop" id="stop-timer">Стоп</button>
+      <button class="stop" id="unpredictable-button">Непредсказуемая задача</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/timer.js"></script>
+</body>
+</html>

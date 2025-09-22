@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timeline App</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Планировщик таймлайна</h1>
+    <div class="view-toggle">
+      <label>
+        <input type="radio" name="timeline-orientation" value="horizontal" checked /> Горизонтальный
+      </label>
+      <label>
+        <input type="radio" name="timeline-orientation" value="vertical" /> Вертикальный
+      </label>
+    </div>
+    <button id="open-timer">Открыть таймер</button>
+  </header>
+
+  <main class="main-layout">
+    <section class="sidebar">
+      <h2>Создание задач</h2>
+
+      <form id="constant-task-form" class="task-form">
+        <h3>Постоянная задача</h3>
+        <label>
+          Название
+          <input type="text" name="name" required />
+        </label>
+        <label>
+          Начало (чч:мм)
+          <input type="time" name="start" required />
+        </label>
+        <label>
+          Конец (чч:мм)
+          <input type="time" name="end" required />
+        </label>
+        <label>
+          Цвет
+          <input type="color" name="color" value="#607d8b" />
+        </label>
+        <button type="submit">Создать</button>
+      </form>
+
+      <form id="active-task-form" class="task-form">
+        <h3>Активная задача</h3>
+        <label>
+          Название
+          <input type="text" name="name" required />
+        </label>
+        <label>
+          Начало (чч:мм)
+          <input type="time" name="start" required />
+        </label>
+        <label>
+          Количество циклов
+          <input type="number" name="cycles" min="1" value="1" required />
+        </label>
+        <label>
+          Длительность цикла (мин)
+          <input type="number" name="cycleDuration" min="1" value="60" required />
+        </label>
+        <label>
+          Отдых между циклами (мин)
+          <input type="number" name="restDuration" min="0" value="10" required />
+        </label>
+        <label>
+          Перерыв после (каждых N циклов)
+          <input type="number" name="breakInterval" min="0" value="0" />
+        </label>
+        <label>
+          Длительность перерыва (мин)
+          <input type="number" name="breakDuration" min="0" value="0" />
+        </label>
+        <label>
+          Цвет циклов
+          <input type="color" name="color" value="#ff9800" />
+        </label>
+        <label>
+          Цвет отдыха
+          <input type="color" name="restColor" value="#8bc34a" />
+        </label>
+        <label>
+          Цвет перерывов
+          <input type="color" name="breakColor" value="#03a9f4" />
+        </label>
+        <button type="submit">Создать</button>
+      </form>
+
+      <section class="unpredictable-panel">
+        <h3>Непредсказуемые задачи</h3>
+        <ul id="unpredictable-list"></ul>
+      </section>
+    </section>
+
+    <section class="timeline-section">
+      <header class="timeline-header">
+        <div class="timeline-scale" id="timeline-scale"></div>
+        <button id="notify-toggle">Уведомления</button>
+      </header>
+      <div class="timeline-wrapper">
+        <div id="timeline" class="timeline timeline-horizontal"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="priority-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Выберите приоритетную задачу</h3>
+      <div class="priority-options"></div>
+      <button id="cancel-priority">Отмена</button>
+    </div>
+  </div>
+
+  <template id="context-menu-template">
+    <div class="task-context-menu">
+      <button data-action="shift-minus">-</button>
+      <div class="time-range"></div>
+      <button data-action="shift-plus">+</button>
+      <label>
+        Минуты
+        <input type="number" min="1" value="1" />
+      </label>
+    </div>
+  </template>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
