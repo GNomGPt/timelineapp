@@ -6,19 +6,73 @@ import { showContextMenu } from "./ui/contextMenu.js";
 
 const timelineEl = document.getElementById("timeline");
 const scaleEl = document.getElementById("timeline-scale");
+const scaleContainer = document.querySelector(".timeline-scale-container");
+const timelineWrapper = document.querySelector(".timeline-wrapper");
+
+let isSyncingScroll = false;
+
+if (timelineWrapper && scaleContainer) {
+  timelineWrapper.addEventListener("scroll", () => {
+    if (isSyncingScroll) return;
+    isSyncingScroll = true;
+    if (scaleContainer.classList.contains("is-horizontal")) {
+      scaleContainer.scrollLeft = timelineWrapper.scrollLeft;
+    }
+    if (scaleContainer.classList.contains("is-vertical")) {
+      scaleContainer.scrollTop = timelineWrapper.scrollTop;
+    }
+    isSyncingScroll = false;
+  });
+
+  scaleContainer.addEventListener("scroll", () => {
+    if (isSyncingScroll) return;
+    isSyncingScroll = true;
+    if (scaleContainer.classList.contains("is-horizontal")) {
+      timelineWrapper.scrollLeft = scaleContainer.scrollLeft;
+    }
+    if (scaleContainer.classList.contains("is-vertical")) {
+      timelineWrapper.scrollTop = scaleContainer.scrollTop;
+    }
+    isSyncingScroll = false;
+  });
+}
 
 const listeners = new Map();
 
-function renderScale() {
+function renderScale(orientation) {
   scaleEl.innerHTML = "";
+  scaleEl.classList.toggle("scale-horizontal", orientation === "horizontal");
+  scaleEl.classList.toggle("scale-vertical", orientation === "vertical");
+  const hourSize = 60 * MINUTE_PX;
+  if (scaleContainer) {
+    scaleContainer.classList.toggle("is-horizontal", orientation === "horizontal");
+    scaleContainer.classList.toggle("is-vertical", orientation === "vertical");
+  }
+  if (orientation === "horizontal") {
+    scaleEl.style.width = `${MINUTES_IN_DAY * MINUTE_PX}px`;
+    scaleEl.style.height = "48px";
+    if (scaleContainer) {
+      scaleContainer.scrollTop = 0;
+    }
+  } else {
+    scaleEl.style.height = `${MINUTES_IN_DAY * MINUTE_PX}px`;
+    scaleEl.style.width = `180px`;
+    if (scaleContainer) {
+      scaleContainer.scrollLeft = 0;
+    }
+  }
   for (let hour = 0; hour < 24; hour++) {
     const marker = document.createElement("div");
+    marker.className = "scale-hour";
     marker.textContent = `${hour.toString().padStart(2, "0")}:00`;
+    if (orientation === "horizontal") {
+      marker.style.width = `${hourSize}px`;
+    } else {
+      marker.style.height = `${hourSize}px`;
+    }
     scaleEl.append(marker);
   }
 }
-
-renderScale();
 
 export function clearTimeline() {
   timelineEl.innerHTML = "";
@@ -30,10 +84,22 @@ function createSegmentElement(segment, task, orientation) {
   segmentEl.className = "segment";
   segmentEl.style.background = segmentColor(segment, task);
   const duration = segment.end - segment.start;
+  const offset = segment.start - task.start;
+  segmentEl.title = segment.name;
   if (orientation === "horizontal") {
+    segmentEl.style.left = `${offset * MINUTE_PX}px`;
     segmentEl.style.width = `${duration * MINUTE_PX}px`;
+    segmentEl.style.height = "100%";
   } else {
+    segmentEl.style.top = `${offset * MINUTE_PX}px`;
     segmentEl.style.height = `${duration * MINUTE_PX}px`;
+    segmentEl.style.width = "100%";
+  }
+  segmentEl.style.position = "absolute";
+  if (orientation === "horizontal") {
+    segmentEl.style.top = "0";
+  } else {
+    segmentEl.style.left = "0";
   }
   segmentEl.textContent = segment.name;
   return segmentEl;
@@ -45,16 +111,20 @@ function attachEvent(el, event, handler) {
 }
 
 function computeTaskLayout(task, orientation) {
-  const width = (task.end - task.start) * MINUTE_PX;
-  const height = 60;
-  const top = task.type === "constant" ? 10 : 90;
-  const left = task.start * MINUTE_PX;
+  const span = Math.max(0, task.end - task.start);
+  if (orientation === "horizontal") {
+    return {
+      width: span * MINUTE_PX,
+      height: 56,
+      top: 36,
+      left: task.start * MINUTE_PX
+    };
+  }
   return {
-    width,
-    height,
-    top,
-    left,
-    orientation
+    width: 56,
+    height: span * MINUTE_PX,
+    top: task.start * MINUTE_PX,
+    left: 36
   };
 }
 
@@ -63,17 +133,18 @@ function createTaskElement(task, orientation) {
   taskEl.className = "task-block";
   taskEl.dataset.id = task.id;
   taskEl.dataset.type = task.type;
+  taskEl.style.zIndex = task.type === "constant" ? "4" : "5";
   const layout = computeTaskLayout(task, orientation);
   if (orientation === "horizontal") {
     taskEl.style.width = `${layout.width}px`;
     taskEl.style.height = `${layout.height}px`;
     taskEl.style.left = `${layout.left}px`;
-    taskEl.style.top = `${task.type === "constant" ? 10 : 100}px`;
+    taskEl.style.top = `${layout.top}px`;
   } else {
-    taskEl.style.height = `${layout.width}px`;
-    taskEl.style.width = `${layout.height}px`;
-    taskEl.style.top = `${layout.left}px`;
-    taskEl.style.left = `${task.type === "constant" ? 10 : 100}px`;
+    taskEl.style.width = `${layout.width}px`;
+    taskEl.style.height = `${layout.height}px`;
+    taskEl.style.top = `${layout.top}px`;
+    taskEl.style.left = `${layout.left}px`;
     taskEl.classList.add("vertical");
   }
 
@@ -98,11 +169,15 @@ function createTaskElement(task, orientation) {
     taskEl.append(segmentEl);
   });
 
-  taskEl.addEventListener("pointerdown", event => {
-    taskEl.classList.add("active-grab");
-    taskEl.setPointerCapture(event.pointerId);
-    startDrag(event, taskEl, task, orientation);
-  });
+  if (task.type === "active") {
+    taskEl.addEventListener("pointerdown", event => {
+      taskEl.classList.add("active-grab");
+      taskEl.setPointerCapture(event.pointerId);
+      startDrag(event, taskEl, task, orientation);
+    });
+  } else {
+    taskEl.classList.add("task-static");
+  }
 
   taskEl.addEventListener("contextmenu", event => {
     event.preventDefault();
@@ -113,16 +188,24 @@ function createTaskElement(task, orientation) {
 }
 
 export function renderTasks(tasks, orientation) {
+  renderScale(orientation);
   clearTimeline();
   const container = timelineEl;
   container.classList.toggle("timeline-horizontal", orientation === "horizontal");
   container.classList.toggle("timeline-vertical", orientation === "vertical");
   if (orientation === "horizontal") {
     container.style.width = `${MINUTES_IN_DAY * MINUTE_PX}px`;
-    container.style.height = `220px`;
+    container.style.height = `180px`;
+    if (scaleContainer) {
+      scaleContainer.style.maxHeight = "";
+    }
   } else {
     container.style.height = `${MINUTES_IN_DAY * MINUTE_PX}px`;
-    container.style.width = `220px`;
+    container.style.width = `180px`;
+    if (scaleContainer) {
+      const visibleHeight = timelineWrapper ? timelineWrapper.clientHeight : 320;
+      scaleContainer.style.maxHeight = `${visibleHeight}px`;
+    }
   }
   tasks
     .slice()
@@ -131,6 +214,13 @@ export function renderTasks(tasks, orientation) {
       const taskEl = createTaskElement(task, orientation);
       container.append(taskEl);
     });
+  if (scaleContainer && timelineWrapper) {
+    if (orientation === "horizontal") {
+      scaleContainer.scrollLeft = timelineWrapper.scrollLeft;
+    } else {
+      scaleContainer.scrollTop = timelineWrapper.scrollTop;
+    }
+  }
 }
 
 function startDrag(event, element, task, orientation) {
@@ -141,11 +231,11 @@ function startDrag(event, element, task, orientation) {
     const delta = (orientation === "horizontal" ? moveEvent.clientX : moveEvent.clientY) - startPos;
     const minuteDelta = snapToMinute(delta / MINUTE_PX);
     const newStart = Math.max(0, Math.min(MINUTES_IN_DAY - 1, originalStart + minuteDelta));
-    const offset = newStart - task.start;
+    const offset = newStart - originalStart;
     if (orientation === "horizontal") {
-      element.style.left = `${(task.start + offset) * MINUTE_PX}px`;
+      element.style.left = `${(originalStart + offset) * MINUTE_PX}px`;
     } else {
-      element.style.top = `${(task.start + offset) * MINUTE_PX}px`;
+      element.style.top = `${(originalStart + offset) * MINUTE_PX}px`;
     }
     updateDragOutline(element, true);
     dragState.currentStart = newStart;

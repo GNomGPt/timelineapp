@@ -15,23 +15,29 @@ export function wrapActiveTask(task, constantTasks) {
 
   constantTasks
     .filter(item => item)
+    .slice()
+    .sort(sortByStart)
     .forEach(constant => {
       const before = [];
       const after = [];
       absoluteSegments.forEach(segment => {
-        if (segment.end <= constant.start || segment.start >= constant.end) {
+        if (segment.end <= constant.start) {
           before.push(segment);
-        } else {
-          const pieces = splitSegment(segment, constant.start);
-          const refined = pieces.flatMap(piece => splitSegment(piece, constant.end));
-          refined.forEach(part => {
-            if (part.end <= constant.start) {
-              before.push(part);
-            } else if (part.start >= constant.end) {
-              after.push(part);
-            }
-          });
+          return;
         }
+        if (segment.start >= constant.end) {
+          after.push(segment);
+          return;
+        }
+        const pieces = splitSegment(segment, constant.start);
+        const refined = pieces.flatMap(piece => splitSegment(piece, constant.end));
+        refined.forEach(part => {
+          if (part.end <= constant.start) {
+            before.push(part);
+          } else {
+            after.push(part);
+          }
+        });
       });
       const offset = constant.end - constant.start;
       const shifted = applyOffsetToSegments(after, offset);
